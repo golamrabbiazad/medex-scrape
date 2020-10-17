@@ -8,8 +8,8 @@ import (
 	"github.com/gocolly/colly"
 )
 
-// Drugs Types specified
-type Drugs struct {
+// DrugsList Types specified
+type DrugsList struct {
 	Title       string
 	Power 		string
 	URL         string
@@ -17,7 +17,7 @@ type Drugs struct {
 }
 
 func main() {
-	stories := []Drugs{}
+	drug := []DrugsList{}
 
 	// fName := "drug_list.csv"
 
@@ -48,9 +48,9 @@ func main() {
 	c.OnHTML("a.hoverable-block", func(l *colly.HTMLElement) {
 		links := l.Attr("href")
 
-		temp := Drugs{}
+		temp := DrugsList{}
 		temp.URL = links
-		stories = append(stories, temp)
+		drug = append(drug, temp)
 
 		c.OnHTML("span.pack-size-info", func(p *colly.HTMLElement) {
 			str := p.Text + "\n"
@@ -76,5 +76,5 @@ func main() {
 		c.Visit("https://medex.com.bd/companies/73/square-pharmaceuticals-ltd?page=" + strconv.Itoa((i)))
 	}
 
-	fmt.Println(stories)
+	fmt.Println(drug)
 }
