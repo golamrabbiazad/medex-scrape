@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 
@@ -12,50 +10,57 @@ import (
 )
 
 // DrugsList Types specified
-// type DrugsList struct {
-// 	Title string
-// 	Power string
-// 	URL   string
-// 	Price float64
-// }
+type DrugsList struct {
+	Title string
+	Power string
+	URL   string
+	Price float64
+}
 
 func main() {
-	// drug := []DrugsList{}
-	fName := "drug_list.csv"
+	// fName := "drug_list.csv"
 
-	file, err := os.Create(fName)
-	if err != nil {
-		log.Fatalf("Cannot create file %q: %s\n", fName, err)
-		return
-	}
+	// file, err := os.Create(fName)
+	// if err != nil {
+	// 	log.Fatalf("Cannot create file %q: %s\n", fName, err)
+	// 	return
+	// }
 
-	defer file.Close()
+	// defer file.Close()
 
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
+	// writer := csv.NewWriter(file)
+	// defer writer.Flush()
 
-	writer.Write([]string{"Title", "Power", "Price", "URL"})
+	// writer.Write([]string{"Title", "Power", "Price", "URL"})
 
+	drugs := make([]DrugsList, 0, 200)
 	c := colly.NewCollector(colly.AllowedDomains("medex.com.bd"))
 
 	c.OnHTML("div.col-xs-12.data-row-top", func(e *colly.HTMLElement) {
 		getTitle := e.Text + "\n"
 		title := strings.TrimSpace(getTitle)
 
-		writer.Write([]string{title})
+		drug := DrugsList{
+			Title: title,
+		}
+		drugs = append(drugs, drug)
 	})
 
 	c.OnHTML("span.grey-ligten", func(h *colly.HTMLElement) {
-		quantity := strings.TrimSpace(h.Text)
-		writer.Write([]string{quantity})
+		power := strings.TrimSpace(h.Text)
+
+		drug := DrugsList{
+			Power: power,
+		}
+		drugs = append(drugs, drug)
 	})
 
 	c.OnHTML("a.hoverable-block", func(l *colly.HTMLElement) {
 		links := l.Attr("href")
 
-		// temp := []DrugsList{}
-		// temp.URL = links
-		// drug = append(drug, temp)
+		drug := DrugsList{
+			URL: links,
+		}
 
 		c.OnHTML("span.pack-size-info", func(p *colly.HTMLElement) {
 			str := p.Text + "\n"
@@ -67,11 +72,11 @@ func main() {
 			modStr := strings.Split(aft, " ")
 			price := modStr[len(modStr)-1]
 
-			writer.Write([]string{price})
+			if val, err := strconv.ParseFloat(price, 64); err == nil {
+				drug.Price = val
+			}
 
-			// if val, err := strconv.ParseFloat(price, 64); err == nil {
-			// 	fmt.Println(val)
-			// }
+			drugs = append(drugs, drug)
 		})
 
 		c.Visit(links)
@@ -80,18 +85,18 @@ func main() {
 	var pages int
 	var companyURL string
 
-	fmt.Printf("How many page do you want to scrape?")
+	fmt.Printf("How many page do you want to scrape? ")
 	fmt.Scanln(&pages)
 
 	companyURL = "https://medex.com.bd/companies/73/square-pharmaceuticals-ltd"
 
 	visitURL(1, pages, companyURL, c)
 
-	log.Printf("Scraping finished, check file %q for results\n", fName)
+	// log.Printf("Scraping finished, check file %q for results\n", fName)
 
 	log.Println(c)
 
-	// fmt.Println(drug)
+	fmt.Println(drugs)
 }
 
 func visitURL(from, to int, companyURL string, c *colly.Collector) {
