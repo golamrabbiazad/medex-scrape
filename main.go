@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -18,15 +20,14 @@ type DrugsList struct {
 }
 
 func main() {
-	// fName := "drug_list.csv"
+	fName := "drug_list.json"
 
-	// file, err := os.Create(fName)
-	// if err != nil {
-	// 	log.Fatalf("Cannot create file %q: %s\n", fName, err)
-	// 	return
-	// }
-
-	// defer file.Close()
+	file, err := os.Create(fName)
+	if err != nil {
+		log.Fatalf("Cannot create file %q: %s\n", fName, err)
+		return
+	}
+	defer file.Close()
 
 	// writer := csv.NewWriter(file)
 	// defer writer.Flush()
@@ -40,27 +41,26 @@ func main() {
 		getTitle := e.Text + "\n"
 		title := strings.TrimSpace(getTitle)
 
-		drug := DrugsList{
+		drug := &DrugsList{
 			Title: title,
 		}
-		drugs = append(drugs, drug)
+		drugs = append(drugs, *drug)
 	})
 
 	c.OnHTML("span.grey-ligten", func(h *colly.HTMLElement) {
 		power := strings.TrimSpace(h.Text)
 
-		drug := DrugsList{
+		drug := &DrugsList{
 			Power: power,
 		}
-		drugs = append(drugs, drug)
+		drugs = append(drugs, *drug)
 	})
 
 	c.OnHTML("a.hoverable-block", func(l *colly.HTMLElement) {
 		links := l.Attr("href")
 
-		drug := DrugsList{
-			URL: links,
-		}
+		drug := &DrugsList{}
+		drug.URL = links
 
 		c.OnHTML("span.pack-size-info", func(p *colly.HTMLElement) {
 			str := p.Text + "\n"
@@ -76,7 +76,7 @@ func main() {
 				drug.Price = val
 			}
 
-			drugs = append(drugs, drug)
+			drugs = append(drugs, *drug)
 		})
 
 		c.Visit(links)
@@ -92,11 +92,17 @@ func main() {
 
 	visitURL(1, pages, companyURL, c)
 
-	// log.Printf("Scraping finished, check file %q for results\n", fName)
+	log.Printf("Scraping finished, check file %q for results\n", fName)
 
 	log.Println(c)
 
-	fmt.Println(drugs)
+	// fmt.Println(drugs)
+
+	enc := json.NewEncoder(file)
+	enc.SetIndent("", "  ")
+
+	// Dump json to the standard output
+	enc.Encode(&drugs)
 }
 
 func visitURL(from, to int, companyURL string, c *colly.Collector) {
